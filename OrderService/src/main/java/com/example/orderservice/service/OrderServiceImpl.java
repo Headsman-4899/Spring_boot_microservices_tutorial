@@ -9,7 +9,7 @@ import com.example.orderservice.external.response.PaymentResponse;
 import com.example.orderservice.model.OrderRequest;
 import com.example.orderservice.model.OrderResponse;
 import com.example.orderservice.repository.OrderRepository;
-import com.example.productservice.model.ProductResponse;
+import com.example.orderservice.external.response.ProductResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
