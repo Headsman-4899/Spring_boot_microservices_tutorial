@@ -5,6 +5,7 @@ import com.example.orderservice.exception.CustomException;
 import com.example.orderservice.external.client.PaymentService;
 import com.example.orderservice.external.client.ProductService;
 import com.example.orderservice.external.request.PaymentRequest;
+import com.example.orderservice.external.response.PaymentResponse;
 import com.example.orderservice.model.OrderRequest;
 import com.example.orderservice.model.OrderResponse;
 import com.example.orderservice.repository.OrderRepository;
@@ -78,10 +79,23 @@ public class OrderServiceImpl implements OrderService {
                         "http://PRODUCT-SERVICE/product/" + order.getProductId(),
                             ProductResponse.class
                 );
+        log.info("Getting payment information from Payment Service");
+        PaymentResponse paymentResponse
+                = restTemplate.getForObject(
+                        "http://PAYMENT-SERVICE/payment/order/" + order.getId(),
+                            PaymentResponse.class
+                );
         OrderResponse.ProductDetails productDetails
                 = OrderResponse.ProductDetails.builder()
                 .productName(productResponse.getProductName())
                 .productId(productResponse.getProductId())
+                .build();
+        OrderResponse.PaymentDetails paymentDetails
+                = OrderResponse.PaymentDetails.builder()
+                .paymentId(paymentResponse.getPaymentId())
+                .paymentStatus(paymentResponse.getStatus())
+                .paymentDate(paymentResponse.getPaymentDate())
+                .paymentMode(paymentResponse.getPaymentMode())
                 .build();
         OrderResponse orderResponse
                 = OrderResponse.builder()
@@ -90,6 +104,7 @@ public class OrderServiceImpl implements OrderService {
                 .amount(order.getAmount())
                 .orderDate(order.getOrderDate())
                 .productDetails(productDetails)
+                .paymentDetails(paymentDetails)
                 .build();
         return orderResponse;
     }
