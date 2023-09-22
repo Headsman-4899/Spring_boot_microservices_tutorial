@@ -52,7 +52,7 @@ public class OrderServiceImplTest {
         when(restTemplate.getForObject(
                 "http://PRODUCT-SERVICE/product/" + order.getProductId(),
                 ProductResponse.class
-        )).thenReturn(getMockOrderResponse());
+        )).thenReturn(getMockProductResponse());
 
         when(restTemplate.getForObject(
                 "http://PAYMENT-SERVICE/payment/order/" + order.getId(),
@@ -80,7 +80,7 @@ public class OrderServiceImplTest {
     @Test
     void test_when_order_not_found() {
         when(orderRepository.findById(anyLong()))
-                .thenReturn(Optional.ofNullable(null));
+                .thenReturn(Optional.empty());
 
         CustomException exception = assertThrows(CustomException.class,
                 () -> orderService.getOrderDetails(1));
@@ -101,9 +101,35 @@ public class OrderServiceImplTest {
         when(orderRepository.save(any(Order.class)))
                 .thenReturn(order);
         when(productService.reduceQuantity(anyLong(),anyLong()))
-                .thenReturn(new ResponseEntity<Void>(HttpStatus.OK));
+                .thenReturn(new ResponseEntity<>(HttpStatus.OK));
         when(paymentService.doPayment(any(PaymentRequest.class)))
-                .thenReturn(new ResponseEntity<Long>(1L,HttpStatus.OK));
+                .thenReturn(new ResponseEntity<>(1L, HttpStatus.OK));
+
+        long orderId = orderService.placeOrder(orderRequest);
+
+        verify(orderRepository, times(2))
+                .save(any());
+        verify(productService, times(1))
+                .reduceQuantity(anyLong(),anyLong());
+        verify(paymentService, times(1))
+                .doPayment(any(PaymentRequest.class));
+
+        assertEquals(order.getId(), orderId);
+    }
+
+    @DisplayName("Place Order - Payment Failed Scenario")
+    @Test
+    void test_when_place_order_payment_fails_then_order_placed() {
+
+        Order order = getMockOrder();
+        OrderRequest orderRequest = getMockOrderRequest();
+
+        when(orderRepository.save(any(Order.class)))
+                .thenReturn(order);
+        when(productService.reduceQuantity(anyLong(),anyLong()))
+                .thenReturn(new ResponseEntity<>(HttpStatus.OK));
+        when(paymentService.doPayment(any(PaymentRequest.class)))
+                .thenThrow(new RuntimeException());
 
         long orderId = orderService.placeOrder(orderRequest);
 
@@ -137,7 +163,7 @@ public class OrderServiceImplTest {
                 .build();
     }
 
-    private ProductResponse getMockOrderResponse() {
+    private ProductResponse getMockProductResponse() {
         return ProductResponse.builder()
                 .productId(2)
                 .productName("iPhone 14 Pro")
