@@ -1,6 +1,7 @@
 package com.example.orderservice.service;
 
 import com.example.orderservice.entity.Order;
+import com.example.orderservice.exception.CustomException;
 import com.example.orderservice.external.client.PaymentService;
 import com.example.orderservice.external.client.ProductService;
 import com.example.orderservice.external.response.PaymentResponse;
@@ -18,8 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.Instant;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -70,6 +70,22 @@ public class OrderServiceImplTest {
         // Assert
         assertNotNull(orderResponse);
         assertEquals(order.getId(), orderResponse.getOrderId());
+    }
+
+    @DisplayName("Get Order - Failure Scenario")
+    @Test
+    void test_when_order_not_found() {
+        when(orderRepository.findById(anyLong()))
+                .thenReturn(Optional.ofNullable(null));
+
+        CustomException exception = assertThrows(CustomException.class,
+                () -> orderService.getOrderDetails(1));
+
+        assertEquals("NOT_FOUND", exception.getErrorCode());
+        assertEquals(404, exception.getStatus());
+
+        verify(orderRepository, times(1))
+                .findById(anyLong());
     }
 
     private PaymentResponse getMockPaymentResponse() {
