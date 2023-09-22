@@ -4,8 +4,10 @@ import com.example.orderservice.entity.Order;
 import com.example.orderservice.exception.CustomException;
 import com.example.orderservice.external.client.PaymentService;
 import com.example.orderservice.external.client.ProductService;
+import com.example.orderservice.external.request.PaymentRequest;
 import com.example.orderservice.external.response.PaymentResponse;
 import com.example.orderservice.external.response.ProductResponse;
+import com.example.orderservice.model.OrderRequest;
 import com.example.orderservice.model.OrderResponse;
 import com.example.orderservice.model.PaymentMode;
 import com.example.orderservice.repository.OrderRepository;
@@ -14,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -86,6 +90,40 @@ public class OrderServiceImplTest {
 
         verify(orderRepository, times(1))
                 .findById(anyLong());
+    }
+
+    @DisplayName("Place Order - Success Scenario")
+    @Test
+    void test_when_place_order_success() {
+        Order order = getMockOrder();
+        OrderRequest orderRequest = getMockOrderRequest();
+
+        when(orderRepository.save(any(Order.class)))
+                .thenReturn(order);
+        when(productService.reduceQuantity(anyLong(),anyLong()))
+                .thenReturn(new ResponseEntity<Void>(HttpStatus.OK));
+        when(paymentService.doPayment(any(PaymentRequest.class)))
+                .thenReturn(new ResponseEntity<Long>(1L,HttpStatus.OK));
+
+        long orderId = orderService.placeOrder(orderRequest);
+
+        verify(orderRepository, times(2))
+                .save(any());
+        verify(productService, times(1))
+                .reduceQuantity(anyLong(),anyLong());
+        verify(paymentService, times(1))
+                .doPayment(any(PaymentRequest.class));
+
+        assertEquals(order.getId(), orderId);
+    }
+
+    private OrderRequest getMockOrderRequest() {
+        return OrderRequest.builder()
+                .productId(1)
+                .quantity(10)
+                .paymentMode(PaymentMode.CASH)
+                .totalAmount(100)
+                .build();
     }
 
     private PaymentResponse getMockPaymentResponse() {
